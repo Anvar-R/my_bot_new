@@ -1,7 +1,8 @@
 import logging
-import dotenv
+from config.config import Config, load_config
 
-dotenv.load_dotenv()
+config: Config = load_config()
+
 logging.basicConfig(
     level=logging.DEBUG,
     format='[%(asctime)s] #%(levelname)-8s %(filename)s:'
