@@ -1,14 +1,17 @@
 import asyncio
 import logging
+import os
 from config.config import Config, load_config
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
-from handlers import user  # Импортируем модуль с хэндлерами
+from handlers import admin, users  # Импортируем модуль с хэндлерами
+import psycopg_pool
+from database.database import get_pg_pool
+import selectors
 
 
-
-config: Config = load_config()
+# config: Config = load_config()
 logger = logging.getLogger(__name__)
 
 async def main():
@@ -26,28 +29,33 @@ async def main():
 
     dp = Dispatcher()
 
-
     # Инициализируем другие объекты (пул соединений с БД, кеш и т.п.)
-    # ...
-
-    # Помещаем нужные объекты в workflow_data диспетчера
-    # dp.workflow_data.update('admin_ids': config.bot.admin_ids)
-
+    db_pool: psycopg_pool.AsyncConnectionPool = await get_pg_pool(
+        db_name=config.db.name,
+        host=config.db.host,
+        port=config.db.port,
+        user=config.db.user,
+        password=config.db.password
+    )
+    dp['IMAGE_PATH'] = config.image.image_path
     # Настраиваем главное меню бота
     # await set_main_menu(bot)
-
+    dp.workflow_data.update({'db_pool': db_pool})
     # Регистриуем роутеры
     logger.info('Подключаем роутеры')
-    dp.include_router(user.router)
-    # ...
-
+    dp.include_router(admin.router)
+    admin.router.message.filter(admin.IsAdmin(config.bot.admin_ids))
+    
+    dp.include_router(users.router)
     # Регистрируем миддлвари
     logger.info('Подключаем миддлвари')
     # ...
 
     # Пропускаем накопившиеся апдейты и запускаем polling
     # await bot.delete_webhook(drop_pending_updates=True)
-    await dp.start_polling(bot)
+    await dp.start_polling(bot, db_pool=db_pool) 
 
-
-asyncio.run(main())
+if os.name == 'nt':
+    asyncio.run(main(),  loop_factory=lambda: asyncio.SelectorEventLoop(selectors.SelectSelector()))
+else:
+    asyncio.run(main())

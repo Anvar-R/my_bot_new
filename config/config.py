@@ -3,11 +3,17 @@ from environs import Env
 
 
 @dataclass
+class ImagePathConfig:
+    image_path: str    # Путь для сохранения изображений
+
+@dataclass
 class DatabaseConfig:
     name: str         # Название базы данных
     host: str         # URL-адрес базы данных
+    port: int         # Порт для подключения к базе данных
     user: str         # Username пользователя базы данных
     password: str     # Пароль к базе данных
+
 
 
 @dataclass
@@ -20,6 +26,8 @@ class TgBot:
 class Config:
     bot: TgBot
     db: DatabaseConfig
+    image: ImagePathConfig
+    
 
 
 def load_config(path: str | None = None) -> Config:
@@ -36,6 +44,10 @@ def load_config(path: str | None = None) -> Config:
             name=env('DB_NAME'),
             host=env('DB_HOST'),
             user=env('DB_USER'),
-            password=env('DB_PASSWORD')
+            password=env('DB_PASSWORD'),
+            port=env('DB_PORT')
+        ),
+        image=ImagePathConfig(
+            image_path=env('IMAGE_PATH')
         )
     )

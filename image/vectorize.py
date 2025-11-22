@@ -64,11 +64,11 @@ def DifferenceHash(theImage):
 
 
 if __name__ == '__main__':
-images_folder = 'photos/'
-start = time.monotonic()
-images_db = create_image_hash_db(images_folder)
-res = images_db.to_json('images_db.json', orient='records')
-input_img_path = 'photos//photo_32202_1.jpg'
-result_df = images_db[images_db['Hash'] == DifferenceHash(Image.open(input_img_path))]
-print(result_df.iloc[0])
-print(f'Total time: {time.monotonic() - start} seconds')
+    images_folder = 'photos/'
+    start = time.monotonic()
+    images_db = create_image_hash_db(images_folder)
+    res = images_db.to_json('images_db.json', orient='records')
+    input_img_path = 'photos//photo_32202_1.jpg'
+    result_df = images_db[images_db['Hash'] == DifferenceHash(Image.open(input_img_path))]
+    print(result_df.iloc[0])
+    print(f'Total time: {time.monotonic() - start} seconds')
