@@ -4,7 +4,6 @@ import os
 import logging
 from PIL import Image
 from image.vectorize import DifferenceHash
-from aiogran.types import Message
 
 
 logger = logging.getLogger(__name__)
@@ -86,36 +85,13 @@ async def create_database(db_pool):
     logger.info(f'{len(records)} images appended to the database')
 
 
-async def find_similar_images(db_pool, message: Message):
-    if message.photo:
-        for i, photo in enumerate(message.photo):
-            await message.bot.download(photo[-1], f'temp_image_{i}.jpg')
-            theImage = Image.open(f'temp_image_{i}.jpg')
-            img_hash = DifferenceHash(theImage)
-            async with db_pool.connection() as connection:
-                async with connection.cursor() as cursor:
-                    await cursor.execute(
-                        """
-                        SELECT * INTO tmpTable
-                        FROM images WHERE image_hash = ;
-                        """, str(img_hash),
-                    )
-                    records = await cursor.fetchall()
-                    similar_images = []
-                    for record in records:
-                        db_image_name, db_upload_date, db_image_hash = record
-                        db_img_hash = DifferenceHash.from_string(db_image_hash)
-                        distance = img_hash.hamming_distance(db_img_hash)
-                        if distance <= 5:  # Threshold for similarity
-                            similar_images.append((db_image_name, db_upload_date, distance))
-                    if similar_images:
-                        response = "Similar images found:\n"
-                        for img_name, upload_date, dist in similar_images:
-                            response += f"- {img_name} (Uploaded on: {upload_date}, Distance: {dist})\n"
-                    else:
-                        response = "No similar images found."
-                    await message.reply(response)
-    pass
-
+async def find_similar_images(db_pool, photo) -> list:
+    theImage = Image.open(photo)
+    img_hash = DifferenceHash(theImage)
+    async with db_pool.connection() as connection:
+        async with connection.cursor() as cursor:
+            await cursor.execute(t"SELECT user_id, image_name, upload_date, image_location FROM images WHERE image_hash = {img_hash};")
+            records = await cursor.fetchall()
+    return records
 
 

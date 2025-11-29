@@ -47,13 +47,16 @@ async def main():
     admin.router.message.filter(admin.IsAdmin(config.bot.admin_ids))
     
     dp.include_router(users.router)
+    users.router.message.filter(~admin.IsAdmin(config.bot.admin_ids))
     # Регистрируем миддлвари
-    logger.info('Подключаем миддлвари')
+    # logger.info('Подключаем миддлвари')
     # ...
 
     # Пропускаем накопившиеся апдейты и запускаем polling
     # await bot.delete_webhook(drop_pending_updates=True)
-    await dp.start_polling(bot, db_pool=db_pool) 
+    await dp.start_polling(bot, 
+                           db_pool=db_pool, 
+                           admin_ids=config.bot.admin_ids) 
 
 if os.name == 'nt':
     asyncio.run(main(),  loop_factory=lambda: asyncio.SelectorEventLoop(selectors.SelectSelector()))
