@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Optional
 from environs import Env
 import os
 import logging
@@ -28,7 +29,9 @@ def exract_date_from_filename(filename: str) -> str:
         if len(time_part.split('-')) == 3 else date_part + ' ' + time_part
 
 
-async def append_image_record(db_pool, record: ImageRecord) -> None:
+async def append_image_record(db_pool, record: ImageRecord,
+                              ImgHash=None, filePath=None) -> None:
+
     async with db_pool.connection() as connection:
         async with connection.cursor() as cursor:
             await cursor.execute(query="""CREATE TABLE IF NOT EXISTS images(
@@ -38,6 +41,12 @@ async def append_image_record(db_pool, record: ImageRecord) -> None:
                 image_hash VARCHAR(50),
                 image_type VARCHAR(10),
                 image_location VARCHAR(10));""")
+            if ImgHash is not None:
+                record.imageHash = ImgHash
+            else:
+                theImage = Image.open(filePath)
+                img_hash = DifferenceHash(theImage)
+                record.imageHash = str(img_hash)
             
             await cursor.execute(
                  """
@@ -90,8 +99,13 @@ async def find_similar_images(db_pool, photo) -> list:
     img_hash = DifferenceHash(theImage)
     async with db_pool.connection() as connection:
         async with connection.cursor() as cursor:
-            await cursor.execute(t"SELECT user_id, image_name, upload_date, image_location FROM images WHERE image_hash = {img_hash};")
+            await cursor.execute("""SELECT user_id,  
+                                 image_name,  
+                                 upload_date, 
+                                 image_location 
+                                 FROM images 
+                                 WHERE image_hash = (%s);""", [str(img_hash)])
             records = await cursor.fetchall()
-    return records
+    return records if records else []
 
 
