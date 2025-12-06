@@ -19,14 +19,20 @@ async def handle_image_message(message: Message, db_pool, admin_ids: list):
     buffer.seek(0)
     similar = await find_similar_images(db_pool, buffer)
     if len(similar) > 0:
+        await message.forward(chat_id=str(admin_ids[0]))
         await Bot.send_photo(
             chat_id=str(admin_ids[0]),
             photo=message.photo[-1].file_id)
-        await Bot.send_message(
-            chat_id=str(admin_ids[0]),
-            text=f"Similar image found from user {similar[0][0]}: "
-                 f"{similar[0][1]}, uploaded on {similar[0][2]}, "
-                 f"location: {similar[0][3]}")
+        if similar[0][3] == 'telegram':
+            await Bot.send_photo(
+                chat_id=str(admin_ids[0]),
+                photo=similar[0][1])
+        else:
+            await Bot.send_message(
+                chat_id=str(admin_ids[0]),
+                text=f"Similar image found from user {similar[0][0]}: "
+                     f"uploaded on {similar[0][2]}, "
+                     f"location: {similar[0][3]}")
     image = ImageRecord(
         userId=message.from_user.id,
         imageName=message.photo[-1].file_id,
