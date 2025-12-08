@@ -6,8 +6,10 @@ from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from handlers import admin, users  # Импортируем модуль с хэндлерами
+from middleware.user import AlbumMiddleware
 import psycopg_pool
 from database.database import get_pg_pool
+from database.image import initialize_database
 import selectors
 
 
@@ -41,6 +43,8 @@ async def main():
     # Настраиваем главное меню бота
     # await set_main_menu(bot)
     dp.workflow_data.update({'db_pool': db_pool})
+    # Инициализируем базу данных
+    await initialize_database(db_pool)    
     # Регистриуем роутеры
     logger.info('Подключаем роутеры')
     dp.include_router(admin.router)
@@ -51,7 +55,8 @@ async def main():
     # Регистрируем миддлвари
     # logger.info('Подключаем миддлвари')
     # ...
-
+    
+    users.router.message.outer_middleware(AlbumMiddleware())
     # Пропускаем накопившиеся апдейты и запускаем polling
     # await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot, 

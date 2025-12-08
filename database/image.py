@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ImageRecord:
     userId: int  # 0 if image uploaded from local source
+    userName: str  # Optional user name
     imageName: str
     uploadDate: str  # Формат даты: 'YYYY-MM-DD HH:MM:SS'
     imageHash: str
@@ -29,18 +30,25 @@ def exract_date_from_filename(filename: str) -> str:
         if len(time_part.split('-')) == 3 else date_part + ' ' + time_part
 
 
-async def append_image_record(db_pool, record: ImageRecord,
-                              ImgHash=None, filePath=None) -> None:
-
+async def initialize_database(db_pool):
     async with db_pool.connection() as connection:
         async with connection.cursor() as cursor:
             await cursor.execute(query="""CREATE TABLE IF NOT EXISTS images(
                 user_id INTEGER,
+                user_name VARCHAR(50),                 
                 image_name VARCHAR(100),
                 upload_date VARCHAR(30),
                 image_hash VARCHAR(50),
                 image_type VARCHAR(10),
                 image_location VARCHAR(10));""")
+    logger.info("Database initialized successfully")
+
+
+async def append_image_record(db_pool, record: ImageRecord,
+                              ImgHash=None, filePath=None) -> None:
+
+    async with db_pool.connection() as connection:
+        async with connection.cursor() as cursor:
             if ImgHash is not None:
                 record.imageHash = ImgHash
             else:
@@ -51,15 +59,17 @@ async def append_image_record(db_pool, record: ImageRecord,
             await cursor.execute(
                  """
                     INSERT INTO images (user_id,
+                    user_name,
                     image_name,
                     upload_date,
                     image_hash,
                     image_type,
                     image_location)
-                    VALUES (%s, %s, %s, %s, %s, %s);
+                    VALUES (%s, %s, %s, %s, %s, %s, %s);
                     """,
                     (
                         record.userId,
+                        record.userName if hasattr(record, 'userName') else '',
                         record.imageName,
                         record.uploadDate,
                         record.imageHash,
@@ -94,18 +104,30 @@ async def create_database(db_pool):
     logger.info(f'{len(records)} images appended to the database')
 
 
-async def find_similar_images(db_pool, photo) -> list:
+async def find_similar_images(db_pool, photo) -> ImageRecord | None:
     theImage = Image.open(photo)
     img_hash = DifferenceHash(theImage)
     async with db_pool.connection() as connection:
         async with connection.cursor() as cursor:
-            await cursor.execute("""SELECT user_id,  
+            await cursor.execute("""SELECT user_id,
+                                 user_name,  
                                  image_name,  
                                  upload_date, 
                                  image_location 
                                  FROM images 
-                                 WHERE image_hash = (%s);""", [str(img_hash)])
-            records = await cursor.fetchall()
-    return records if records else []
-
+                                 WHERE image_hash = (%s)
+                                 ORDER BY upload_date DESC;""", [str(img_hash)])
+            record = await cursor.fetchone()
+            if record:
+                imgRec = ImageRecord(
+                    userId=record[0],
+                    userName=record[1],
+                    imageName=record[2],
+                    uploadDate=record[3],
+                    imageHash="",
+                    imageType="",
+                    imageLocation=record[4]
+                )
+                return imgRec
+        return None
 
