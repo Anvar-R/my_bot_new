@@ -1,7 +1,8 @@
 from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.types import Message
-from database.image import find_similar_images, ImageRecord, append_image_record
+from database.image import (find_similar_images, ImageRecord,
+                            append_image_record)
 import logging
 import io
 
