@@ -22,6 +22,9 @@ async def main():
             format='[%(asctime)s] #%(levelname)-8s %(filename)s:'
             '%(lineno)d - %(name)s - %(message)s'
     )
+    log_file = logging.FileHandler('my_bot.log', mode='w', encoding='utf-8')
+    log_file.setLevel(logging.DEBUG)
+    logger.addHandler(log_file)
 
     config: Config = load_config()
     bot = Bot(
