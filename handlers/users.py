@@ -44,7 +44,7 @@ async def handle_image_message(message: Message, db_pool, admin_ids: list):
 
 
 @router.message(F.photo)
-async def handle_photos(message: Message, db_pool, admin_ids: list, album):
+async def handle_photos(message: Message, db_pool, admin_ids: list, album: list = None):
     if album:
         for msg in album:
             await handle_image_message(msg, db_pool, admin_ids)

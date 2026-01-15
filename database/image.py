@@ -34,7 +34,7 @@ async def initialize_database(db_pool):
     async with db_pool.connection() as connection:
         async with connection.cursor() as cursor:
             await cursor.execute(query="""CREATE TABLE IF NOT EXISTS images(
-                user_id INTEGER,
+                user_id BIGINT,
                 user_name VARCHAR(50),                 
                 image_name VARCHAR(100),
                 upload_date VARCHAR(30),

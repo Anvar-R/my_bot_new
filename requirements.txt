@@ -6,7 +6,6 @@ aiosignal==1.4.0
 annotated-types==0.7.0
 attrs==25.4.0
 certifi==2025.11.12
-dlib==20.0.0
 environs==14.5.0
 frozenlist==1.8.0
 idna==3.11

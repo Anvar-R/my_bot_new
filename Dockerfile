@@ -5,12 +5,12 @@ ENV PYTHONUNBUFFERED=1
 WORKDIR /app
 
 # Install system dependencies required to build some Python packages (dlib, pillow, psycopg)
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-       build-essential cmake git wget curl pkg-config \
-       libopenblas-dev liblapack-dev libx11-dev libjpeg-dev libpng-dev \
-       libbz2-dev libffi-dev libssl-dev \
-    && rm -rf /var/lib/apt/lists/*
+#RUN apt-get update \
+#    && apt-get install -y --no-install-recommends \
+#       build-essential cmake git wget curl pkg-config \
+#       libopenblas-dev liblapack-dev libx11-dev libjpeg-dev libpng-dev \
+#       libbz2-dev libffi-dev libssl-dev \
+#    && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
 COPY requirements.txt /app/requirements.txt

@@ -1,30 +1,7 @@
 from PIL import Image
-import pandas as pd
 import os
-import dlib
 import time
 
-detector = dlib.get_frontal_face_detector()
-
-def create_image_hash_db(images_folder: str) -> pd.DataFrame:
-    data_dict = dict()
-    list_dir = os.listdir(images_folder)
-    print(f'{len(list_dir)} images found in the folder "{images_folder}"')
-    for file_name in list_dir:
-        image_path = os.path.join(images_folder, file_name)
-        if os.path.isfile(image_path):
-            if not detect_faces(image_path):
-                continue
-            theImage = Image.open(image_path)
-            img_hash = DifferenceHash(theImage)
-            data_dict[file_name] = img_hash
-    print(f'{len(data_dict)} images appended to the database')           
-    return pd.DataFrame(data_dict.items(), columns=['Image', 'Hash'])  
-
-def detect_faces(img_path: str) -> bool:
-    img = dlib.load_rgb_image(img_path)
-    dets = detector(img, 1)
-    return len(dets) > 0
 
 def DifferenceHash(theImage):
 
