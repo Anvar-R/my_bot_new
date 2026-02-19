@@ -25,7 +25,8 @@ async def handle_image_message(message: Message, db_pool, admin_ids: list):
                 chat_id=str(admin_ids[0]),
                 photo=similar.imageName,
                 caption=f"Similar image found from user {similar.userName}: "
-                        f"uploaded on {similar.uploadDate}, ")
+                        f"uploaded on {similar.uploadDate}," 
+                        f"timestamp: {similar.unix_date}")
         else:
             await Bot.send_message(
                 chat_id=str(admin_ids[0]),
@@ -39,7 +40,8 @@ async def handle_image_message(message: Message, db_pool, admin_ids: list):
         uploadDate=message.date.strftime("%d-%m-%Y %H:%M:%S"),
         imageHash="",
         imageType="",
-        imageLocation="telegram")
+        imageLocation="telegram",
+        unix_date=message.date.timestamp())
     await append_image_record(db_pool, image, ImgHash=None, filePath=buffer)
 
 
