@@ -1,0 +1,8 @@
+#!/bin/bash
+#Script for starting Uvicorn service
+source /home/anvar/my_bot/venv/bin/activate
+cd /home/anvar/my_bot/api
+uvicorn api_main:app --host 0.0.0.0 --port 8000
+#PID=$!
+#wait $PID
+#celery -A tasks worker --concurrency=1 --loglevel=info

@@ -11,10 +11,18 @@ import psycopg_pool
 from database.database import get_pg_pool
 from database.image import initialize_database
 import selectors
-
+import signal
 
 # config: Config = load_config()
 logger = logging.getLogger(__name__)
+
+def shutdown_handler(sig, frame):
+    logger.info("Bot shutting down")
+    sys.exit(0)
+
+signal.signal(signal.SIGTERM, shutdown_handler)
+signal.signal(signal.SIGINT, shutdown_handler)
+
 
 async def main():
     logging.basicConfig(
@@ -45,7 +53,8 @@ async def main():
     dp['IMAGE_PATH'] = config.image.image_path
     # Настраиваем главное меню бота
     # await set_main_menu(bot)
-    dp.workflow_data.update({'db_pool': db_pool})
+    dp.workflow_data.update({'db_pool': db_pool}, 
+                            API_URL=config.API_URL)
     # Инициализируем базу данных
     await initialize_database(db_pool)    
     # Регистриуем роутеры

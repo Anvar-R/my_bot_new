@@ -27,7 +27,7 @@ class Config:
     bot: TgBot
     db: DatabaseConfig
     image: ImagePathConfig
-    
+    API_URL: str
 
 
 def load_config(path: str | None = None) -> Config:
@@ -49,5 +49,6 @@ def load_config(path: str | None = None) -> Config:
         ),
         image=ImagePathConfig(
             image_path=env('IMAGE_PATH')
-        )
+        ),
+        API_URL=env('API_URL')
     )

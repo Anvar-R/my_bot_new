@@ -20,6 +20,7 @@ class ImageRecord:
     imageType: str | None  # Holds type of image contenent, e.g., 'face', 'equip', etc.
     imageLocation: str | None  # Holds location of image, e.g., 'local', 's3', etc.
     unix_date: float # Unix timestamp
+    im_predicted_class: str
 
 
 def exract_date_from_filename(filename: str) -> str:
@@ -42,7 +43,8 @@ async def initialize_database(db_pool):
                 image_hash VARCHAR(50),
                 image_type VARCHAR(10),
                 image_location VARCHAR(10),
-                up_date FLOAT);""")
+                up_date FLOAT,
+                im_predicted_class VARCHAR(10));""")
     logger.info("Database initialized successfully")
 
 
@@ -67,8 +69,9 @@ async def append_image_record(db_pool, record: ImageRecord,
                     image_hash,
                     image_type,
                     image_location,
-                    up_date)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s);
+                    up_date,
+                    im_predicted_class)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s);
                     """,
                     (
                         record.userId,
@@ -78,7 +81,8 @@ async def append_image_record(db_pool, record: ImageRecord,
                         record.imageHash,
                         record.imageType,
                         record.imageLocation,
-                        record.unix_date
+                        record.unix_date,
+                        record.im_predicted_class
                     ),
                 )
 
@@ -118,7 +122,8 @@ async def find_similar_images(db_pool, photo) -> ImageRecord | None:
                                  image_name,  
                                  upload_date, 
                                  image_location,
-                                 up_date 
+                                 up_date,
+                                 im_predicted_class 
                                  FROM images 
                                  WHERE image_hash = (%s)
                                  ORDER BY upload_date DESC;""", [str(img_hash)])
@@ -132,7 +137,8 @@ async def find_similar_images(db_pool, photo) -> ImageRecord | None:
                     imageHash="",
                     imageType="",
                     imageLocation=record[4],
-                    unix_date=record[5]
+                    unix_date=record[5], 
+                    im_predicted_class=record[6]
                 )
                 return imgRec
         return None
