@@ -1,14 +1,16 @@
 import asyncio
 import logging
 import os
+import sys
 from config.config import Config, load_config
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
+from aiogram.fsm.storage.memory import MemoryStorage
 from handlers import admin, users  # Импортируем модуль с хэндлерами
-from middleware.user import AlbumMiddleware
+from middleware.user import AlbumMiddleware, IfInChatsMiddleware
 import psycopg_pool
-from database.database import get_pg_pool
+from database.database import get_pg_pool, GetChatsList
 from database.image import initialize_database
 import selectors
 import signal
@@ -40,7 +42,7 @@ async def main():
         default=DefaultBotProperties(parse_mode=ParseMode.HTML)
     )
 
-    dp = Dispatcher()
+    dp = Dispatcher(storage=MemoryStorage())
 
     # Инициализируем другие объекты (пул соединений с БД, кеш и т.п.)
     db_pool: psycopg_pool.AsyncConnectionPool = await get_pg_pool(
@@ -53,15 +55,17 @@ async def main():
     dp['IMAGE_PATH'] = config.image.image_path
     # Настраиваем главное меню бота
     # await set_main_menu(bot)
-    dp.workflow_data.update({'db_pool': db_pool}, 
+    dp.workflow_data.update({'db_pool': db_pool},
                             API_URL=config.API_URL)
     # Инициализируем базу данных
-    await initialize_database(db_pool)    
+    await initialize_database(db_pool)
+    dp.workflow_data.update({'Known_chats': [chat_id[0] for chat_id in await GetChatsList(db_pool)]})
+
     # Регистриуем роутеры
     logger.info('Подключаем роутеры')
     dp.include_router(admin.router)
     admin.router.message.filter(admin.IsAdmin(config.bot.admin_ids))
-    
+
     dp.include_router(users.router)
     users.router.message.filter(~admin.IsAdmin(config.bot.admin_ids))
     # Регистрируем миддлвари
@@ -69,6 +73,7 @@ async def main():
     # ...
     
     users.router.message.outer_middleware(AlbumMiddleware())
+    users.router.message.outer_middleware(IfInChatsMiddleware(dp.workflow_data['Known_chats']))
     # Пропускаем накопившиеся апдейты и запускаем polling
     # await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot, 

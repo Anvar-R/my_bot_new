@@ -1,8 +1,9 @@
 import asyncio
 from typing import Any, Dict, Union
 
-from aiogram import BaseMiddleware
+from aiogram import BaseMiddleware, types
 from aiogram.types import Message
+from database.database import AddChat
 
 
 class AlbumMiddleware(BaseMiddleware):
@@ -56,3 +57,23 @@ class AlbumMiddleware(BaseMiddleware):
         del self.album_data[event.media_group_id]
 #         # Call the original event handler
         return await handler(event, data)
+
+class IfInChatsMiddleware(BaseMiddleware):
+    def __init__(self, allowed_chat_ids: list):
+        self.allowed_chat_ids = allowed_chat_ids
+
+    async def __call__(self, handler, event: Message, data: Dict[str, Any]) -> Any:
+        if event.chat.id in self.allowed_chat_ids:
+            return await handler(event, data)
+        else:
+            new_chat = {}
+            if event.chat.type == "private":
+                new_chat = {"chat_id": event.chat.id, 
+                            "chat_type": event.chat.type,
+                            "chat_name": event.chat.first_name + " " + event.chat.last_name if event.chat.last_name else event.chat.first_name} 
+            else:
+                new_chat = {"chat_id": event.chat.id,
+                            "chat_type": event.chat.type, 
+                            "chat_name": event.chat.title}
+            await AddChat(data['db_pool'], new_chat)
+            return await handler(event, data)

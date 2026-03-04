@@ -31,40 +31,42 @@ async def handle_image_message(message: Message, db_pool, API_URL, admin_ids: li
             result = await resp.json()
 
     if result['class'] in ["Equip", "Selfie"]:
-        await Bot.forward_message(chat_id=str(admin_ids[0]),
-                              from_chat_id=message.chat.id,
-                              message_id=message.message_id)
-        await Bot.send_message(chat_id=str(admin_ids[0]), text=f"Class: {result['class']}")
+        #await Bot.forward_message(chat_id=str(admin_ids[0]),
+        #                      from_chat_id=message.chat.id,
+        #                      message_id=message.message_id)
+        #await Bot.send_message(chat_id=str(admin_ids[0]), text=f"Class: {result['class']}")
 
-    await Bot.download_file(file_path, buffer)
-    buffer.seek(0)
-    similar = await find_similar_images(db_pool, buffer)
-    if similar is not None:
-        await message.forward(chat_id=str(admin_ids[0]))
-        if similar.imageLocation == 'telegram':
-            await Bot.send_photo(
-                chat_id=str(admin_ids[0]),
-                photo=similar.imageName,
-                caption=f"Similar image found from user {similar.userName}: "
-                        f"uploaded on {similar.uploadDate}," 
-                        f"timestamp: {similar.unix_date}")
-        else:
-            await Bot.send_message(
-                chat_id=str(admin_ids[0]),
-                text=f"Similar image found from user {similar.userName}: "
-                     f"uploaded on {similar.uploadDate}, "
-                     f"location: {similar.imageLocation}")
-    image = ImageRecord(
-        userId=message.from_user.id,
-        userName=message.from_user.full_name + "(@" + message.from_user.username + ")" if message.from_user.username else message.from_user.full_name,
-        imageName=message.photo[-1].file_id,
-        uploadDate=message.date.strftime("%d-%m-%Y %H:%M:%S"),
-        imageHash="",
-        imageType="",
-        imageLocation="telegram",
-        unix_date=message.date.timestamp(),
-        im_predicted_class=result['class'])
-    await append_image_record(db_pool, image, ImgHash=None, filePath=buffer)
+        await Bot.download_file(file_path, buffer)
+        buffer.seek(0)
+        similar = await find_similar_images(db_pool, buffer)
+        if similar is not None:
+            await message.forward(chat_id=str(admin_ids[0]))
+            if similar.imageLocation == 'telegram':
+                await Bot.send_photo(
+                    chat_id=str(admin_ids[0]),
+                    photo=similar.imageName,
+                    caption=f"Similar image found from user {similar.userName}: "
+                            f"uploaded on {similar.uploadDate}," 
+                            f"timestamp: {similar.unix_date}")
+            else:
+                await Bot.send_message(
+                    chat_id=str(admin_ids[0]),
+                    text=f"Similar image found from user {similar.userName}: "
+                        f"uploaded on {similar.uploadDate}, "
+                        f"location: {similar.imageLocation}")
+        image = ImageRecord(
+            userId=message.from_user.id,
+            userName=message.from_user.full_name + "(@" + message.from_user.username + ")" if message.from_user.username else message.from_user.full_name,
+            imageName=message.photo[-1].file_id,
+            uploadDate=message.date.strftime("%d-%m-%Y %H:%M:%S"),
+            imageHash="",
+            imageType="",
+            imageLocation="telegram",
+            unix_date=message.date.timestamp(),
+            im_predicted_class=result['class'],
+            chat_id=message.chat.id, 
+            message_id=message.message_id)
+        await append_image_record(db_pool, image, ImgHash=None, filePath=buffer)
 
 
 @router.message(F.photo)

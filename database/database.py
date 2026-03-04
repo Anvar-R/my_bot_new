@@ -92,3 +92,21 @@ async def get_pg_pool(
         if db_pool and not db_pool.closed:
             await db_pool.close()
         raise
+
+async def GetChatsList(db_pool):
+    async with db_pool.connection() as connection:
+        async with connection.cursor() as cursor:
+            await cursor.execute("SELECT chat_id FROM chats;")
+            rows = await cursor.fetchall()
+            logger.info(f"Fetched {len(rows)} chat IDs from the database.")
+            return rows
+
+async def AddChat(db_pool, chat: dict):
+    async with db_pool.connection() as connection:
+        async with connection.cursor() as cursor:
+            await cursor.execute(
+                """INSERT INTO chats (chat_id, chat_type, chat_name) 
+                VALUES (%s, %s, %s) ON CONFLICT (chat_id) DO NOTHING;""",
+                (chat['chat_id'], chat['chat_type'], chat['chat_name'])
+            )
+            logger.info(f"Added chat ID {chat['chat_id']} to the database.")
