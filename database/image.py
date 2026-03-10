@@ -37,6 +37,11 @@ def exract_date_from_filename(filename: str) -> str:
 async def initialize_database(db_pool):
     async with db_pool.connection() as connection:
         async with connection.cursor() as cursor:
+            await cursor.execute(query="""CREATE TABLE IF NOT EXISTS users(
+                user_id BIGINT PRIMARY KEY,
+                user_name VARCHAR(100),
+                user_lang VARCHAR(2) DEFAULT 'UZ');""")
+
             await cursor.execute(query="""CREATE TABLE IF NOT EXISTS images(
                 user_id BIGINT,
                 user_name VARCHAR(50),
@@ -238,4 +243,36 @@ async def insert_equip(db_pool, equip_data: list[tuple]) -> int:
     except Exception as e:
         logger.error(f"Error inserting equipment: {e}")
         raise
+
+
+async def add_or_update_user(db_pool, user_id: int, user_name: str, user_lang: str = 'ru') -> None:
+    """Add user if not exists in users table"""
+    async with db_pool.connection() as conn:
+        async with conn.cursor() as cursor:
+            # Check if user already exists
+            await cursor.execute(
+                "SELECT user_id FROM users WHERE user_id = %s",
+                (user_id,)
+            )
+            exists = await cursor.fetchone()
+            
+            # If user doesn't exist, insert
+            if not exists:
+                await cursor.execute(
+                    """INSERT INTO users (user_id, user_name, user_lang)
+                       VALUES (%s, %s, %s)""",
+                    (user_id, user_name, user_lang)
+                )
+
+
+async def get_user_language(db_pool, user_id: int) -> str:
+    """Get user's preferred language, defaults to 'ru'"""
+    async with db_pool.connection() as conn:
+        async with conn.cursor() as cursor:
+            await cursor.execute(
+                "SELECT user_lang FROM users WHERE user_id = %s",
+                (user_id,)
+            )
+            result = await cursor.fetchone()
+            return result[0] if result else 'UZ'
 

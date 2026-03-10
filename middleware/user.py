@@ -4,6 +4,7 @@ from typing import Any, Dict, Union
 from aiogram import BaseMiddleware, types
 from aiogram.types import Message
 from database.database import AddChat
+from database.image import add_or_update_user
 
 
 class AlbumMiddleware(BaseMiddleware):
@@ -63,6 +64,11 @@ class IfInChatsMiddleware(BaseMiddleware):
         self.allowed_chat_ids = allowed_chat_ids
 
     async def __call__(self, handler, event: Message, data: Dict[str, Any]) -> Any:
+        # Register or update user in database
+        if event.from_user:
+            user_name = event.from_user.full_name
+            await add_or_update_user(data['db_pool'], event.from_user.id, user_name)
+        
         if event.chat.id in self.allowed_chat_ids:
             return await handler(event, data)
         else:

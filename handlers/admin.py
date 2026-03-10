@@ -3,8 +3,8 @@ from aiogram.filters import Command, CommandStart, BaseFilter
 from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
-from lexicon.lexicon import LEXICON_RU
-from database.image import create_database, insert_routes, insert_equip
+from lexicon.lexicon import LEXICON_RU, LEXICON_UZ
+from database.image import create_database, insert_routes, insert_equip, get_user_language
 from database.excel_parser import parse_route_excel, parse_equip_excel
 import time
 import logging
@@ -40,34 +40,43 @@ class EquipmentUpdate(StatesGroup):
 
 # Этот хэндлер срабатывает на команду /start
 @router.message(CommandStart())
-async def process_start_command(message: Message):
-    await message.answer(text=LEXICON_RU['/start'])
+async def process_start_command(message: Message, db_pool):
+    user_lang = await get_user_language(db_pool, message.from_user.id)
+    lexicon = LEXICON_RU if user_lang == 'ru' else LEXICON_UZ
+    await message.answer(text=lexicon['/start'])
 
 
 # Этот хэндлер срабатывает на команду /help
 @router.message(Command(commands='help'))
-async def process_help_command(message: Message):
-    await message.answer(text=LEXICON_RU['/help'])
+async def process_help_command(message: Message, db_pool):
+    user_lang = await get_user_language(db_pool, message.from_user.id)
+    lexicon = LEXICON_RU if user_lang == 'ru' else LEXICON_UZ
+    await message.answer(text=lexicon['/help'])
 
 @router.message(Command(commands='data'))
 async def process_data_command(message: Message, db_pool):
+    user_lang = await get_user_language(db_pool, message.from_user.id)
+    lexicon = LEXICON_RU if user_lang == 'ru' else LEXICON_UZ
     bot = message.bot
-    await bot.send_message(chat_id=message.from_user.id, text='Начинаю заполнение базы данных изображениями...')
+    await bot.send_message(chat_id=message.from_user.id, text=lexicon['starting_db_population'])
     logger.info('Recieved /data command from admin user. Starting database population.')
     startTime = time.monotonic()
     await create_database(db_pool)
+    elapsed_time = time.monotonic() - startTime
     await bot.send_message(chat_id=message.from_user.id, 
-        text=f'Заполнение базы данных завершено. Затрачено времени: {time.monotonic() - startTime:.2f} секунд.')
+        text=f"{lexicon['db_population_completed']} {elapsed_time:.2f} {lexicon['seconds']}")
     logger.info('Database population completed.')
 
 
 @router.message(Command(commands='updateroute'))
-async def process_updateroute_command(message: Message, state: FSMContext):
+async def process_updateroute_command(message: Message, state: FSMContext, db_pool):
     """Handle /updateroute command - ask admin to send Excel file"""
+    user_lang = await get_user_language(db_pool, message.from_user.id)
+    lexicon = LEXICON_RU if user_lang == 'ru' else LEXICON_UZ
     bot = message.bot
     await bot.send_message(
         chat_id=message.from_user.id,
-        text='📊 Отправьте Excel файл (.xlsx) с данными маршрутов.\n\n'
+        text=f"{lexicon['send_excel_route']}"
              'Требуемые колонки:\n'
              '• agent_id (целое число)\n'
              '• reg_name (текст, макс 50 символов)\n'
@@ -80,6 +89,8 @@ async def process_updateroute_command(message: Message, state: FSMContext):
 @router.message(RouteUpdate.waiting_for_file)
 async def process_route_file(message: Message, state: FSMContext, db_pool):
     """Handle Excel file upload for route data"""
+    user_lang = await get_user_language(db_pool, message.from_user.id)
+    lexicon = LEXICON_RU if user_lang == 'ru' else LEXICON_UZ
     bot = message.bot
 
     # Check if message contains a document
@@ -154,12 +165,14 @@ async def process_route_file(message: Message, state: FSMContext, db_pool):
 
 
 @router.message(Command(commands='equipment'))
-async def process_equipment_command(message: Message, state: FSMContext):
+async def process_equipment_command(message: Message, state: FSMContext, db_pool):
     """Handle /equipment command - ask admin to send Excel file"""
+    user_lang = await get_user_language(db_pool, message.from_user.id)
+    lexicon = LEXICON_RU if user_lang == 'ru' else LEXICON_UZ
     bot = message.bot
     await bot.send_message(
         chat_id=message.from_user.id,
-        text='📋 Отправьте Excel файл (.xlsx) с данными оборудования.\n\n'
+        text=f"{lexicon['send_excel_equip']}"
              'Требуемые колонки:\n'
              '• agent_id (целое число)\n'
              '• cust_name (текст, макс 50 символов)\n'
@@ -173,6 +186,8 @@ async def process_equipment_command(message: Message, state: FSMContext):
 @router.message(EquipmentUpdate.waiting_for_file)
 async def process_equipment_file(message: Message, state: FSMContext, db_pool):
     """Handle Excel file upload for equipment data"""
+    user_lang = await get_user_language(db_pool, message.from_user.id)
+    lexicon = LEXICON_RU if user_lang == 'ru' else LEXICON_UZ
     bot = message.bot
 
     # Check if message contains a document
