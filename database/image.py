@@ -23,6 +23,7 @@ class ImageRecord:
     im_predicted_class: str
     chat_id: str
     message_id: int
+    caption: str
 
 
 def exract_date_from_filename(filename: str) -> str:
@@ -51,7 +52,8 @@ async def initialize_database(db_pool):
                 image_type VARCHAR(10),
                 image_location VARCHAR(10),
                 up_date FLOAT,
-                im_predicted_class VARCHAR(10));""")
+                im_predicted_class VARCHAR(10),
+                caption VARCHAR(40));""")
 
             await cursor.execute(query="""CREATE TABLE IF NOT EXISTS route(
                 agent_id BIGINT,
@@ -91,8 +93,10 @@ async def append_image_record(db_pool, record: ImageRecord,
                     image_location,
                     up_date,
                     im_predicted_class,
-                    chat_id, message_id)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
+                    chat_id, 
+                    message_id, 
+                    caption)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
                     """,
                     (
                         record.userId,
@@ -105,7 +109,8 @@ async def append_image_record(db_pool, record: ImageRecord,
                         record.unix_date,
                         record.im_predicted_class,
                         record.chat_id,
-                        record.message_id 
+                        record.message_id,
+                        record.caption
                     ),
                 )
 
@@ -148,8 +153,9 @@ async def find_similar_images(db_pool, photo) -> ImageRecord | None:
                                  up_date,
                                  im_predicted_class,
                                  chat_id,
-                                 message_id
-                                 FROM images 
+                                 message_id, 
+                                 caption
+                                  FROM images 
                                  WHERE image_hash = (%s)
                                  ORDER BY upload_date DESC;""", [str(img_hash)])
             record = await cursor.fetchone()
@@ -165,7 +171,8 @@ async def find_similar_images(db_pool, photo) -> ImageRecord | None:
                     unix_date=record[5], 
                     im_predicted_class=record[6], 
                     chat_id=record[7],
-                    message_id=record[8]
+                    message_id=record[8],
+                    caption=record[9] if len(record) > 9 else ""
                 )
                 return imgRec
         return None

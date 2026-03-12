@@ -135,7 +135,8 @@ async def handle_image_message(message: Message, db_pool, API_URL, admin_ids: li
         unix_date=message.date.timestamp(),
         im_predicted_class=result['class'],
         chat_id=message.chat.id, 
-        message_id=message.message_id)
+        message_id=message.message_id,
+        caption=message.caption if message.caption else "")
     await append_image_record(db_pool, image, ImgHash=None, filePath=buffer)
 
        
